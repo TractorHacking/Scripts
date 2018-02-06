@@ -1,0 +1,11 @@
+usage
+./taball.sh <source path> <destination path>
+
+The script loops through all the .csv files in the source directory
+and runs them into tabulate.py. The csv must be of the following format:
+
+<Group Label>, <Byte Offset>, <SPN Name>, <SPN Length>
+
+One entry per line, the first row shall be data, not column titles. 
+
+
