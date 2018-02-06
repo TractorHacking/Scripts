@@ -1,0 +1,4 @@
+Aftertreatment 1 Outlet Gas 2,1-2,Aftertreatment 1 Exhaust Temperature 3,2 bytes
+Aftertreatment 1 Outlet Gas 2,3-4,Aftertreatment 1 Diesel Particulate Filter Outlet Temperature,2 bytes
+Aftertreatment 1 Outlet Gas 2,5.1,Aftertreatment 1 Exhaust Temperature 3 Preliminary FMI,5 bits
+Aftertreatment 1 Outlet Gas 2,6.1,Aftertreatment 1 Diesel Particulate Filter Outlet Exhaust Temperature Preliminary FMI,5 bits

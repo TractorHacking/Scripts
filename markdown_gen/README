@@ -9,3 +9,10 @@ and runs them into tabulate.py. The csv must be of the following format:
 One entry per line, the first row shall be data, not column titles. 
 
 
+Alternatively, the python script can be run independent of the bash script, 
+if you only want to run this on one file.
+
+usage
+python tabulate.py <source path> <destination path>
+
+The same format constraints for the input csv file apply

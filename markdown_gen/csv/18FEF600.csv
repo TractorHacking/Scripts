@@ -1,0 +1,7 @@
+Intake/Exhaust Conditions 1,1,Aftertreatment 1 Diesel Particulate Filter Intake Pressure (use SPN 3609),1 byte
+Intake/Exhaust Conditions 1,2,Engine Intake Manifold #1 Pressure,1 byte
+Intake/Exhaust Conditions 1,3,Engine Intake Manifold 1 Temperature,1 byte
+Intake/Exhaust Conditions 1,4,Engine Intake Air Pressure,1 byte
+Intake/Exhaust Conditions 1,5,Engine Air Filter 1 Differential Pressure,1 byte
+Intake/Exhaust Conditions 1,6-7,Engine Exhaust Temperature,2 bytes
+Intake/Exhaust Conditions 1,8,Engine Coolant Filter Differential Pressure,1 byte

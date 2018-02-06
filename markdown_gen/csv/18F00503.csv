@@ -1,0 +1,5 @@
+Electronic Transmission Controller 2,1,Transmission Selected Gear,1 byte
+Electronic Transmission Controller 2,2-3,Transmission Actual Gear Ratio,2 bytes
+Electronic Transmission Controller 2,4,Transmission Current Gear,1 byte
+Electronic Transmission Controller 2,5-6,Transmission Requested Range,2 bytes
+Electronic Transmission Controller 2,7-8,Transmission Current Range,2 bytes
