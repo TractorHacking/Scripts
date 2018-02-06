@@ -5,14 +5,53 @@ from pprint import pprint
 import argparse
 import os
 
+class CanbusID:
+
+  def __init__(self, id):
+    # not the actual id but whatever for some reason we've got a null ID
+    if id == '':
+      id = "0"
+    self.base_id = int(id, 16)
+    
+  def __str__(self):
+    return ("0x%08x" % self.base_id)
+    
+  def getPGN(self):
+    return (self.base_id & 0x00FFFF00) >> 8
+  
+  def getSource(self):
+    return (self.base_id & 0x000000FF) # >> 0
+    
+  def getDataPage(self):
+    return (self.base_id & 0x03000000) >> 24
+    
+  def getPriority(self):
+    return (self.base_id & 0x1C000000) >> 26
+    
+  def toString(self, *args, showPGN=False, showSource=False, showPriority=False, showDataPage=False):
+    strlist = [str(self)]
+    if showPGN:
+      strlist.append("PGN: " + str(self.getPGN()))
+    if showSource:
+      strlist.append("Source: " + str(self.getSource()))
+    if showPriority:
+      strlist.append("Priority: " + str(self.getPriority()))
+    if showDataPage:
+      strlist.append("Data Page: " + str(self.getDataPage()))
+    return "["+(", ".join(strlist))+"]"
+
 class CanbusData:
 
-  def __init__(self):
+  def __init__(self, *args, showPGN=False, showSource=False, showPriority=False, showDataPage=False):
   
     self.ids_dict = {}
     self.packet_sequence = []
     self.error_count = 0
     self.files_scanned = []
+    self.showPGN = showPGN
+    self.showSource = showSource
+    self.showPriority = showPriority
+    self.showDataPage = showDataPage
   
   def read(self, fpath):
     self.files_scanned.append(fpath)
@@ -45,7 +84,9 @@ class CanbusData:
   def printDataByID(self):
     print("====SECTION Data by ID====")
     for thing in sorted(self.ids_dict.keys()):
-      print("%s: (%d entries)" % (thing, len(self.ids_dict[thing])))
+      cbid = CanbusID(thing)
+      idstr = cbid.toString(showPGN=self.showPGN, showSource=self.showSource, showPriority=self.showPriority, showDataPage=self.showDataPage)
+      print("%s: (%d entries)" % (idstr, len(self.ids_dict[thing])))
       for data in self.ids_dict[thing]:
         if len(self.files_scanned) <= 1:
           print("\t%s\n\t\t%s" % (data["time"], data["data"]))
@@ -55,10 +96,15 @@ class CanbusData:
   def printAllIDs(self):
     l = sorted(self.ids_dict.keys())
     for i in range(len(l)):
-      print("%2d" % i, l[i], "(%d entries across all checked files)" % len(self.ids_dict[l[i]]))
+      cbid = CanbusID(l[i])
+      idstr = cbid.toString(showPGN=self.showPGN, showSource=self.showSource, showPriority=self.showPriority, showDataPage=self.showDataPage)
+      print("%2d" % i, idstr, "(%d entries across all checked files)" % len(self.ids_dict[l[i]]))
         
   def printDataOnCanID(self, idstring):
+    cbid = CanbusID(idstring)
     print("====SECTION Data of ID '%s'====" % idstring)
+    # help i should not be allowed within 50 feet of kwargs
+    print(cbid.toString(showPGN=self.showPGN, showSource=self.showSource, showPriority=self.showPriority, showDataPage=self.showDataPage))
     print("(%d entries across all %d scanned file(s))" % (len(self.ids_dict[idstring]), len(self.files_scanned)))
     files_set = set()
     for data in self.ids_dict[idstring]:
@@ -89,9 +135,13 @@ if __name__ == "__main__":
   action.add_argument('--dump-ids', action='store_true')
 
   parser.add_argument('data_path', nargs="*", type=str, help="Paths to csv files containing data. If absent, scans the \"data\" directory.")
+  parser.add_argument('--show-src', action='store_true', help="Shows the source address for each CAN ID")
+  parser.add_argument('--show-pri', action='store_true', help="Shows the priority of each CAN ID")
+  parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
+  parser.add_argument('--show-pgn', action='store_true', help="Shows the decimal PGN key for each CAN ID")
   args = parser.parse_args()
   
-  cbdata = CanbusData()
+  cbdata = CanbusData(showPGN=args.show_pgn, showSource=args.show_src, showPriority=args.show_pri, showDataPage=args.show_dp)
   
   # No path specified, scan the "data" folder for sheets
   if len(args.data_path) == 0:
