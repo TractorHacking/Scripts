@@ -4,6 +4,7 @@ import csv
 from pprint import pprint
 import argparse
 import os
+import sys
 
 class CanbusID:
 
@@ -54,6 +55,7 @@ class CanbusData:
     self.showDataPage = showDataPage
   
   def read(self, fpath):
+    print( "reading: " + fpath, file=sys.stderr)
     self.files_scanned.append(fpath)
     infile = open(fpath)
     reader = csv.reader(infile)
