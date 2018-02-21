@@ -58,31 +58,30 @@ class CanbusData:
     if verbose:
       print( "reading: " + fpath, file=sys.stderr)
     self.files_scanned.append(fpath)
-    infile = open(fpath)
-    reader = csv.reader(infile)
+    with open(fpath) as infile:
+      reader = csv.reader(infile)
+      # Skip first "header" row
 
-    # Skip first "header" row
+      header_row = next(reader)
 
-    header_row = next(reader)
-
-    err_index = header_row.index("Errors")
-    ID_index = header_row.index("ID")
-    data_index = header_row.index("Data")
-    time_index = header_row.index("Time")
-    
-    # 9 columns per row
-    for row in reader:
-      # row has an error
-      if len(row[err_index]) != 0:
-        self.error_count = self.error_count + 1
-        continue
-      # data is null
-      if len(row[data_index]) == 0:
-        continue
-      id_data = self.ids_dict.setdefault(row[ID_index], [])
-      pinfo_dict = { "data": row[data_index], "time": row[time_index], "ID": row[ID_index], "sourceFile": fpath }
-      id_data.append(pinfo_dict)
-      self.packet_sequence.append(pinfo_dict)
+      err_index = header_row.index("Errors")
+      ID_index = header_row.index("ID")
+      data_index = header_row.index("Data")
+      time_index = header_row.index("Time")
+      
+      # 9 columns per row
+      for row in reader:
+        # row has an error
+        if len(row[err_index]) != 0:
+          self.error_count = self.error_count + 1
+          continue
+        # data is null
+        if len(row[data_index]) == 0:
+          continue
+        id_data = self.ids_dict.setdefault(row[ID_index], [])
+        pinfo_dict = { "data": row[data_index], "time": row[time_index], "ID": row[ID_index], "sourceFile": fpath }
+        id_data.append(pinfo_dict)
+        self.packet_sequence.append(pinfo_dict)
 
   def printDataByID(self):
     print("====SECTION Data by ID====")
@@ -151,18 +150,21 @@ if __name__ == "__main__":
   if len(args.data_path) == 0:
     args.data_path = ["data"]
     
+  target_list = []
   for p in args.data_path:
     if os.path.isdir(p):
       for root, dirs, files in os.walk(p):
         for f in files:
           if not f.endswith(".csv"):
             continue
-          try:
-            cbdata.read(os.path.join(root, f), args.verbose)
-          except UnicodeDecodeError:
-            print("Unable to read file %s" % f)
+          target_list.append(os.path.join(root, f))
     else:
-      cbdata.read(p, args.verbose)
+      target_list.append(p)
+  for t in target_list:
+    try:
+      cbdata.read(t, args.verbose)
+    except UnicodeDecodeError as e:
+      print("Error when reading file %s: %s" % (t, e))
       
   if args.collate:
     cbdata.printDataByID()
@@ -170,6 +172,9 @@ if __name__ == "__main__":
     args.target_id = args.target_id.upper()
     if args.target_id.startswith("0X"):
       args.target_id = args.target_id[2:]
-    cbdata.printDataOnCanID(args.target_id)
+    if args.target_id in cbdata.ids_dict.keys():
+      cbdata.printDataOnCanID(args.target_id)
+    else:
+      print("Key %s not found" % args.target_id)
   elif args.dump_ids:
     cbdata.printAllIDs()
