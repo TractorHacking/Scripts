@@ -136,7 +136,7 @@ if __name__ == "__main__":
   action.add_argument('--target-id', type=str)
   action.add_argument('--dump-ids', action='store_true')
 
-  parser.add_argument('data_path', nargs="*", type=str, help="Paths to csv files containing data. If absent, scans the \"data\" directory.")
+  parser.add_argument('data_path', nargs="*", type=str, help="Paths to csv files containing data, or a directory to scan for such files. If absent, scans the \"data\" directory.")
   parser.add_argument('--show-src', action='store_true', help="Shows the source address for each CAN ID")
   parser.add_argument('--show-pri', action='store_true', help="Shows the priority of each CAN ID")
   parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
@@ -147,16 +147,19 @@ if __name__ == "__main__":
   
   # No path specified, scan the "data" folder for sheets
   if len(args.data_path) == 0:
-    for root, dirs, files in os.walk("data"):
-      for p in files:
-        if not p.endswith(".csv"):
-          continue
-        try:
-          cbdata.read(os.path.join(root, p))
-        except UnicodeDecodeError:
-          print("Unable to read file %s" % p)
-  else:
-    for p in args.data_path:
+    args.data_path = ["data"]
+    
+  for p in args.data_path:
+    if os.path.isdir(p):
+      for root, dirs, files in os.walk(p):
+        for f in files:
+          if not f.endswith(".csv"):
+            continue
+          try:
+            cbdata.read(os.path.join(root, f))
+          except UnicodeDecodeError:
+            print("Unable to read file %s" % f)
+    else:
       cbdata.read(p)
       
   if args.collate:
