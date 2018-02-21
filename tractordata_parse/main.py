@@ -164,7 +164,7 @@ if __name__ == "__main__":
     try:
       cbdata.read(t, args.verbose)
     except UnicodeDecodeError as e:
-      print("Error when reading file %s: %s" % (t, e))
+      print("Error when reading file %s: %s" % (t, e), file=sys.stderr)
       
   if args.collate:
     cbdata.printDataByID()
