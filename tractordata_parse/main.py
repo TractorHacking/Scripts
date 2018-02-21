@@ -54,8 +54,9 @@ class CanbusData:
     self.showPriority = showPriority
     self.showDataPage = showDataPage
   
-  def read(self, fpath):
-    print( "reading: " + fpath, file=sys.stderr)
+  def read(self, fpath, verbose=False):
+    if verbose:
+      print( "reading: " + fpath, file=sys.stderr)
     self.files_scanned.append(fpath)
     infile = open(fpath)
     reader = csv.reader(infile)
@@ -141,6 +142,7 @@ if __name__ == "__main__":
   parser.add_argument('--show-pri', action='store_true', help="Shows the priority of each CAN ID")
   parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
   parser.add_argument('--show-pgn', action='store_true', help="Shows the decimal PGN key for each CAN ID")
+  parser.add_argument('--verbose', action='store_true', help="Makes the program more chatty about minor details")
   args = parser.parse_args()
   
   cbdata = CanbusData(showPGN=args.show_pgn, showSource=args.show_src, showPriority=args.show_pri, showDataPage=args.show_dp)
@@ -156,11 +158,11 @@ if __name__ == "__main__":
           if not f.endswith(".csv"):
             continue
           try:
-            cbdata.read(os.path.join(root, f))
+            cbdata.read(os.path.join(root, f), args.verbose)
           except UnicodeDecodeError:
             print("Unable to read file %s" % f)
     else:
-      cbdata.read(p)
+      cbdata.read(p, args.verbose)
       
   if args.collate:
     cbdata.printDataByID()
