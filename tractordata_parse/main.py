@@ -147,10 +147,14 @@ if __name__ == "__main__":
   
   # No path specified, scan the "data" folder for sheets
   if len(args.data_path) == 0:
-    for p in os.listdir("data"):
-      if not p.endswith(".csv"):
-        continue
-      cbdata.read("data/" + p)
+    for root, dirs, files in os.walk("data"):
+      for p in files:
+        if not p.endswith(".csv"):
+          continue
+        try:
+          cbdata.read(os.path.join(root, p))
+        except UnicodeDecodeError:
+          print("Unable to read file %s" % p)
   else:
     for p in args.data_path:
       cbdata.read(p)
@@ -158,6 +162,9 @@ if __name__ == "__main__":
   if args.collate:
     cbdata.printDataByID()
   elif args.target_id:
+    args.target_id = args.target_id.upper()
+    if args.target_id.startswith("0X"):
+      args.target_id = args.target_id[2:]
     cbdata.printDataOnCanID(args.target_id)
   elif args.dump_ids:
     cbdata.printAllIDs()
