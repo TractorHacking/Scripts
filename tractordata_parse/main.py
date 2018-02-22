@@ -177,6 +177,9 @@ class CanbusData:
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Get unique CAN-Bus IDs.')
   
+  # we do a common parser instead of adding them all above because otherwise
+  # argparse goes bonkers and you have to stick all the flags in front of the action
+  # which is weird
   common_parser = argparse.ArgumentParser(add_help=False)
   common_parser.add_argument('data_path', nargs="*", type=str, help="Paths to csv files containing data, or a directory to scan for such files. If absent, scans the \"data\" directory.")
   
@@ -191,7 +194,7 @@ if __name__ == "__main__":
   sortmodes_gp.add_argument('--sortby-pgn', dest='sortmode', action='store_const', const=SortMode.by_pgn, help="Groups by PGN instead of the full ID")
   sortmodes_gp.add_argument('--sortby-id',  dest='sortmode', action='store_const', const=SortMode.by_id , help="Groups by full ID")
   
-  subparsers = parser.add_subparsers(dest="action_type", metavar="Action")
+  subparsers = parser.add_subparsers(dest="action_type")
   subparsers.required = True
 
   def collate(args):
