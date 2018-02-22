@@ -35,6 +35,7 @@ class SortMode(Enum):
   by_src = auto()
   by_pri = auto()
   by_pgndp = auto()
+  by_pgnpri = auto()
 
 
 # I've gone off the deep end
@@ -68,6 +69,12 @@ sortmode_traits = {
     "idtype_str": "PGN+Data Page",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
     "idtype_transform": lambda s, args: s
+  },
+  SortMode.by_pgnpri: {
+    "length": 5,
+    "idtype_str": "PGN+Priority",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
+    "idtype_transform": lambda s, args: s
   }
 }
 
@@ -96,6 +103,9 @@ class CanbusID:
     
   def getPGNAndDataPage(self):
     return (self.base_id & 0x03FFFF00) >> 8
+    
+  def getPGNAndPriority(self):
+    return self.getPGN() | (self.getPriority() << 16)
     
   def toString(self, args):
     strlist = [str(self)]
@@ -223,11 +233,12 @@ if __name__ == "__main__":
   
   sortmodes_gp = common_parser.add_mutually_exclusive_group()
   sortmodes_gp.set_defaults(sortmode=SortMode.by_id)
-  sortmodes_gp.add_argument('--sortby-pgn',   dest='sortmode', action='store_const', const=SortMode.by_pgn,   help="Groups by PGN instead of the full ID")
-  sortmodes_gp.add_argument('--sortby-id',    dest='sortmode', action='store_const', const=SortMode.by_id ,   help="Groups by full ID")
-  sortmodes_gp.add_argument('--sortby-src',   dest='sortmode', action='store_const', const=SortMode.by_src,   help="Groups by source device")
-  sortmodes_gp.add_argument('--sortby-pri',   dest='sortmode', action='store_const', const=SortMode.by_pri,   help="Groups by priority")
-  sortmodes_gp.add_argument('--sortby-pgndp', dest='sortmode', action='store_const', const=SortMode.by_pgndp, help="Groups by PGN+Data page")
+  sortmodes_gp.add_argument('--sortby-pgn',    dest='sortmode', action='store_const', const=SortMode.by_pgn,    help="Groups by PGN instead of the full ID")
+  sortmodes_gp.add_argument('--sortby-id',     dest='sortmode', action='store_const', const=SortMode.by_id ,    help="Groups by full ID")
+  sortmodes_gp.add_argument('--sortby-src',    dest='sortmode', action='store_const', const=SortMode.by_src,    help="Groups by source device")
+  sortmodes_gp.add_argument('--sortby-pri',    dest='sortmode', action='store_const', const=SortMode.by_pri,    help="Groups by priority")
+  sortmodes_gp.add_argument('--sortby-pgndp',  dest='sortmode', action='store_const', const=SortMode.by_pgndp,  help="Groups by PGN+Data page")
+  sortmodes_gp.add_argument('--sortby-pgnpri', dest='sortmode', action='store_const', const=SortMode.by_pgnpri, help="Groups by PGN+Priority")
   
   subparsers = parser.add_subparsers(dest="action_type")
   subparsers.required = True
