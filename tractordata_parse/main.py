@@ -187,11 +187,12 @@ class CanbusData:
     print("(%d entries across all %d scanned file(s))" % (len(packets_list), len(self.files_scanned)))
     # We want an iterable for which 
     for data in packets_list:
-      if len(self.files_scanned) > 1:
-        print("\t({:>50})".format(data["sourceFile"]), end='')
+      print("\t{}".format(data["time"]), end='')
       if args.sortmode is not SortMode.by_id:
         print("\t{}".format(data["ID"]), end='')
-      print("\t{}".format(data["time"]))
+      if len(self.files_scanned) > 1:
+        print("\t({:>50})".format(data["sourceFile"]), end='')
+      print() # newline
       print("\t\t{}".format(data["data"]))
       files_set.add(data["sourceFile"])
     print("Found in the following files:")
