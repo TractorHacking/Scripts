@@ -42,27 +42,32 @@ sortmode_traits = {
   SortMode.by_id: {
     "length": 8,
     "idtype_str": "ID",
-    "dict_transform": lambda d: d
+    "dict_transform": lambda d: d,
+    "idtype_transform": lambda s, args: CanbusID(s).toString(args)
   },
   SortMode.by_pgn: {
     "length": 4,
     "idtype_str": "PGN",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN())),
+    "idtype_transform": lambda s, args: "{0}, {1}".format(s, int(s, 16))
   },
   SortMode.by_src: {
     "length": 2,
     "idtype_str": "Source",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource())),
+    "idtype_transform": lambda s, args: s
   },
   SortMode.by_pri: {
     "length": 1,
     "idtype_str": "Priority",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getPriority()))
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getPriority())),
+    "idtype_transform": lambda s, args: s
   },
   SortMode.by_pgndp: {
     "length": 5,
     "idtype_str": "PGN+Data Page",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage()))
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
+    "idtype_transform": lambda s, args: s
   }
 }
 
@@ -148,11 +153,7 @@ class CanbusData:
     identifier_map = sortmode_traits[args.sortmode]["dict_transform"](self.ids_dict)
     
     for thing in sorted(identifier_map.keys()):
-      idstr = thing
-      if args.sortmode is SortMode.by_id:
-        idstr = CanbusID(idstr).toString(args)
-      elif args.sortmode is SortMode.by_pgn:
-        idstr = "{0}, {1}".format(idstr, int(idstr, 16))
+      idstr = sortmode_traits[args.sortmode]["idtype_transform"](thing, args)
       print("%s: (%d entries)" % (idstr, len(identifier_map[thing])))
       for data in identifier_map[thing]:
         if len(self.files_scanned) > 1:
@@ -167,11 +168,8 @@ class CanbusData:
       
     l = sorted(identifier_map.keys())
     for i in range(len(l)):
-      idstr = l[i]
-      if args.sortmode is SortMode.by_id:
-        idstr = CanbusID(idstr).toString(args)
-      elif args.sortmode is SortMode.by_pgn:
-        idstr = "{0}, {1}".format(idstr, int(idstr, 16))
+      idstr = sortmode_traits[args.sortmode]["idtype_transform"](l[i], args)
+      
       print("%2d" % i, idstr, "(%d entries across all checked files)" % len(identifier_map[l[i]]))
         
   def printDataOnCanID(self, idstring, args):
