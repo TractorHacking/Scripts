@@ -2,9 +2,42 @@
 
 import csv
 from pprint import pprint
+
+from enum import Enum, auto
 import argparse
 import os
 import sys
+import itertools
+
+# this function is probably wholly unnecessary and non-idiomatic
+def squashKeys(d, hashfn):
+  newdict = dict()
+  # this is a list of lists of IDs that share the same PGN
+  #iterthing = itertools.groupby(ids_dict.keys(), lambda canid: CanBusID(canid).getPGN())
+  iterthing = itertools.groupby(d.keys(), hashfn)
+  # we need to use this to create a dictionary that uses these PGNs as keys
+  # the existing dictionary contains lists of dictionaries that each correspond to a
+  # packet
+  # we want to concatenate all such lists that match those packets to a single list
+  # and then use those to create a new dictionary to iterate through
+  # I think I'm overlooking a more idiomatic way of doing this
+  # using "sum" maybe?
+  for pgn, matching_ids in iterthing:
+    # matching_ids is a list of IDs that share the same PGN value
+    for i in matching_ids:
+      packetlist = newdict.setdefault(pgn, [])
+      packetlist.extend(d[i])
+  return newdict
+
+class SortMode(Enum):
+  by_id = auto()
+  by_pgn = auto()
+
+
+ids_length = {
+  SortMode.by_id: 8,
+  SortMode.by_pgn: 4
+}
 
 class CanbusID:
 
@@ -29,30 +62,25 @@ class CanbusID:
   def getPriority(self):
     return (self.base_id & 0x1C000000) >> 26
     
-  def toString(self, *args, showPGN=False, showSource=False, showPriority=False, showDataPage=False):
+  def toString(self, args):
     strlist = [str(self)]
-    if showPGN:
+    if args.show_pgn:
       strlist.append("PGN: " + str(self.getPGN()))
-    if showSource:
+    if args.show_src:
       strlist.append("Source: " + str(self.getSource()))
-    if showPriority:
+    if args.show_pri:
       strlist.append("Priority: " + str(self.getPriority()))
-    if showDataPage:
+    if args.show_dp:
       strlist.append("Data Page: " + str(self.getDataPage()))
     return "["+(", ".join(strlist))+"]"
 
 class CanbusData:
-
-  def __init__(self, *args, showPGN=False, showSource=False, showPriority=False, showDataPage=False):
+  def __init__(self, *args, ):
   
     self.ids_dict = {}
     self.packet_sequence = []
     self.error_count = 0
     self.files_scanned = []
-    self.showPGN = showPGN
-    self.showSource = showSource
-    self.showPriority = showPriority
-    self.showDataPage = showDataPage
   
   def read(self, fpath, verbose=False):
     if verbose:
@@ -78,73 +106,128 @@ class CanbusData:
         # data is null
         if len(row[data_index]) == 0:
           continue
-        id_data = self.ids_dict.setdefault(row[ID_index], [])
-        pinfo_dict = { "data": row[data_index], "time": row[time_index], "ID": row[ID_index], "sourceFile": fpath }
+        # goofy trick to make the ID uniform
+        can_id = "{0:#010x}".format(int(row[ID_index] if row[ID_index] is not '' else '0', 16))
+        id_data = self.ids_dict.setdefault(can_id, [])
+        pinfo_dict = { "data": row[data_index], "time": row[time_index], "ID": can_id, "sourceFile": fpath }
         id_data.append(pinfo_dict)
         self.packet_sequence.append(pinfo_dict)
 
-  def printDataByID(self):
+  def printDataByID(self, args):
     print("====SECTION Data by ID====")
-    for thing in sorted(self.ids_dict.keys()):
-      cbid = CanbusID(thing)
-      idstr = cbid.toString(showPGN=self.showPGN, showSource=self.showSource, showPriority=self.showPriority, showDataPage=self.showDataPage)
-      print("%s: (%d entries)" % (idstr, len(self.ids_dict[thing])))
-      for data in self.ids_dict[thing]:
+    identifier_map = self.ids_dict
+    if args.sortmode is SortMode.by_pgn:
+      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+      
+    for thing in sorted(identifier_map.keys()):
+      idstr = thing
+      if args.sortmode is SortMode.by_id:
+        idstr = CanbusID(idstr).toString(args)
+      elif args.sortmode is SortMode.by_pgn:
+        idstr = "{0}, {1}".format(idstr, int(idstr, 16))
+      print("%s: (%d entries)" % (idstr, len(identifier_map[thing])))
+      for data in identifier_map[thing]:
         if len(self.files_scanned) <= 1:
           print("\t%s\n\t\t%s" % (data["time"], data["data"]))
         else:
           print("\t%-50s\t%s\n\t\t%s" % ("(%s)" % data["sourceFile"], data["time"], data["data"]))
         
-  def printAllIDs(self):
-    l = sorted(self.ids_dict.keys())
+  def printAllIDs(self, args):
+    identifier_map = self.ids_dict
+    
+    if args.sortmode is SortMode.by_pgn:
+      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+    l = sorted(identifier_map.keys())
     for i in range(len(l)):
-      cbid = CanbusID(l[i])
-      idstr = cbid.toString(showPGN=self.showPGN, showSource=self.showSource, showPriority=self.showPriority, showDataPage=self.showDataPage)
-      print("%2d" % i, idstr, "(%d entries across all checked files)" % len(self.ids_dict[l[i]]))
+      idstr = l[i]
+      if args.sortmode is SortMode.by_id:
+        idstr = CanbusID(idstr).toString(args)
+      elif args.sortmode is SortMode.by_pgn:
+        idstr = "{0}, {1}".format(idstr, int(idstr, 16))
+      print("%2d" % i, idstr, "(%d entries across all checked files)" % len(identifier_map[l[i]]))
         
-  def printDataOnCanID(self, idstring):
-    cbid = CanbusID(idstring)
-    print("====SECTION Data of ID '%s'====" % idstring)
-    # help i should not be allowed within 50 feet of kwargs
-    print(cbid.toString(showPGN=self.showPGN, showSource=self.showSource, showPriority=self.showPriority, showDataPage=self.showDataPage))
-    print("(%d entries across all %d scanned file(s))" % (len(self.ids_dict[idstring]), len(self.files_scanned)))
+  def printDataOnCanID(self, idstring, args):
     files_set = set()
-    for data in self.ids_dict[idstring]:
+    
+    # this is a dict sorted on ID
+    identifier_map = self.ids_dict
+    
+    if args.sortmode is SortMode.by_id:
+      print("====SECTION Data of ID '%s'====" % idstring)
+      print(CanbusID(idstring).toString(args))
+    elif args.sortmode is SortMode.by_pgn:
+      print("====SECTION Data of PGN '%s'====" % idstring)
+      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+      
+    if not (idstring in identifier_map.keys()):
+      print("Key '%s' not present" % idstring)
+      return
+    packets_list = identifier_map[idstring]
+    
+    print("(%d entries across all %d scanned file(s))" % (len(packets_list), len(self.files_scanned)))
+    # We want an iterable for which 
+    for data in packets_list:
       print("\t%-50s\t%s\n\t\t%s" % ("(%s)" % data["sourceFile"], data["time"], data["data"]))
       files_set.add(data["sourceFile"])
     print("Found in the following files:")
     pprint(files_set)
-  
 
-#print("====SECTION Data in order====")
-#print("ID keys:")
-#id_reverse_map = {}
-#for i in range(len(id_list)):
-#  print("%2d" % i, id_list[i])
-#  id_reverse_map[id_list[i]] = i
-
-
-#for thing in packet_sequence:
-#  print("%08s:\t[%2s]\t%s" % (thing["time"], id_reverse_map[thing["ID"]], thing["data"]))
   
 # the actual driving magic is here
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Get unique CAN-Bus IDs.')
+  
+  common_parser = argparse.ArgumentParser(add_help=False)
+  common_parser.add_argument('data_path', nargs="*", type=str, help="Paths to csv files containing data, or a directory to scan for such files. If absent, scans the \"data\" directory.")
+  
+  common_parser.add_argument('--show-src', action='store_true', help="Shows the source address for each CAN ID")
+  common_parser.add_argument('--show-pri', action='store_true', help="Shows the priority of each CAN ID")
+  common_parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
+  common_parser.add_argument('--show-pgn', action='store_true', help="Shows the decimal PGN key for each CAN ID")
+  common_parser.add_argument('--verbose', action='store_true', help="Makes the program more chatty about minor details")
+  
+  sortmodes_gp = common_parser.add_mutually_exclusive_group()
+  sortmodes_gp.set_defaults(sortmode=SortMode.by_id)
+  sortmodes_gp.add_argument('--sortby-pgn', dest='sortmode', action='store_const', const=SortMode.by_pgn, help="Groups by PGN instead of the full ID")
+  sortmodes_gp.add_argument('--sortby-id',  dest='sortmode', action='store_const', const=SortMode.by_id , help="Groups by full ID")
+  
+  subparsers = parser.add_subparsers(dest="action_type", metavar="Action")
+  subparsers.required = True
 
-  action = parser.add_mutually_exclusive_group(required=True)
-  action.add_argument('--collate', action='store_true')
-  action.add_argument('--target-id', type=str)
-  action.add_argument('--dump-ids', action='store_true')
+  def collate(args):
+    cbdata.printDataByID(args)
+  
+  def id_info(args):
+    for tidlist in args.target_id:
+      tid = tidlist[0] # the lists have only 1 entry
+      temp_tid = None
+      try:
+        temp_tid = int(tid)
+      except ValueError:
+        try:
+          temp_tid = int(tid, 16)
+        except ValueError:
+          print("Unable to parse ID {}".format(tid))
+          sys.exit(1)
+      tid = "{0:#0{1}x}".format(temp_tid, 2 + ids_length[args.sortmode])
+      cbdata.printDataOnCanID(tid, args)
+      
+  def dump_ids(args):
+    cbdata.printAllIDs(args)
 
-  parser.add_argument('data_path', nargs="*", type=str, help="Paths to csv files containing data, or a directory to scan for such files. If absent, scans the \"data\" directory.")
-  parser.add_argument('--show-src', action='store_true', help="Shows the source address for each CAN ID")
-  parser.add_argument('--show-pri', action='store_true', help="Shows the priority of each CAN ID")
-  parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
-  parser.add_argument('--show-pgn', action='store_true', help="Shows the decimal PGN key for each CAN ID")
-  parser.add_argument('--verbose', action='store_true', help="Makes the program more chatty about minor details")
+  collate_action = subparsers.add_parser('collate', parents=[common_parser], help='List the signals from each file')
+  collate_action.set_defaults(func=collate)
+  
+  info_action = subparsers.add_parser('id-info', parents=[common_parser], help='Print info specific to a single CAN ID. Requires at least one target ID flag')
+  info_action.add_argument('--target-id', action='append', nargs=1, help="A specific ID to show more info on. Required by the 'id_info' mode", required=True)
+  info_action.set_defaults(func=id_info)
+  
+  dump_action = subparsers.add_parser('dump-ids', parents=[common_parser], help='Dump all unique CAN IDs from the files')
+  dump_action.set_defaults(func=dump_ids)
+  
   args = parser.parse_args()
   
-  cbdata = CanbusData(showPGN=args.show_pgn, showSource=args.show_src, showPriority=args.show_pri, showDataPage=args.show_dp)
+  cbdata = CanbusData()
   
   # No path specified, scan the "data" folder for sheets
   if len(args.data_path) == 0:
@@ -153,28 +236,26 @@ if __name__ == "__main__":
   target_list = []
   for p in args.data_path:
     if os.path.isdir(p):
-      for root, dirs, files in os.walk(p):
+      visited_set = set()
+      for root, dirs, files in os.walk(p, topdown=True, followlinks=True):
+        visited_set.add(os.path.realpath(root))
+        for d in dirs.copy():
+          true_path = os.path.realpath(os.path.join(root, d))
+          # prune walking directories already visited
+          # necessary to avoid infinite recursion with followlinks
+          if true_path in visited_set:
+            dirs.remove(d)
         for f in files:
           if not f.endswith(".csv"):
             continue
           target_list.append(os.path.join(root, f))
     else:
       target_list.append(p)
+
   for t in target_list:
     try:
       cbdata.read(t, args.verbose)
     except UnicodeDecodeError as e:
       print("Error when reading file %s: %s" % (t, e), file=sys.stderr)
       
-  if args.collate:
-    cbdata.printDataByID()
-  elif args.target_id:
-    args.target_id = args.target_id.upper()
-    if args.target_id.startswith("0X"):
-      args.target_id = args.target_id[2:]
-    if args.target_id in cbdata.ids_dict.keys():
-      cbdata.printDataOnCanID(args.target_id)
-    else:
-      print("Key %s not found" % args.target_id)
-  elif args.dump_ids:
-    cbdata.printAllIDs()
+  args.func(args)
