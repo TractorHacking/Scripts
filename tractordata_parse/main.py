@@ -68,13 +68,13 @@ sortmode_traits = {
     "length": 5,
     "idtype_str": "PGN+Data Page",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
-    "idtype_transform": lambda s, args: "{:#06x}, Data Page {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if args.show_dp else s
+    "idtype_transform": lambda s, args: "{:#06x}, Data Page {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnpri: {
     "length": 5,
     "idtype_str": "PGN+Priority",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
-    "idtype_transform": lambda s, args: "{:#06x}, Priority {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if args.show_pri else s
+    "idtype_transform": lambda s, args: "{:#06x}, Priority {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if not args.show_keys else s
   }
 }
 
@@ -230,6 +230,7 @@ if __name__ == "__main__":
   common_parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
   common_parser.add_argument('--show-pgn', action='store_true', help="Shows the decimal PGN key for each CAN ID")
   common_parser.add_argument('--verbose', action='store_true', help="Makes the program more chatty about minor details")
+  common_parser.set_defaults(show_keys=False)
   
   sortmodes_gp = common_parser.add_mutually_exclusive_group()
   sortmodes_gp.set_defaults(sortmode=SortMode.by_id)
@@ -272,6 +273,7 @@ if __name__ == "__main__":
   info_action.set_defaults(func=id_info)
   
   dump_action = subparsers.add_parser('dump-ids', parents=[common_parser], help='Dump all unique CAN IDs from the files')
+  dump_action.add_argument('--show-keys', action='store_true', help="Show the keys for use in the 'target-id' statement")
   dump_action.set_defaults(func=dump_ids)
   
   args = parser.parse_args()
