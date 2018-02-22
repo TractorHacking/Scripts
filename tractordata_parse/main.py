@@ -68,13 +68,13 @@ sortmode_traits = {
     "length": 5,
     "idtype_str": "PGN+Data Page",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
-    "idtype_transform": lambda s, args: s
+    "idtype_transform": lambda s, args: "{:#06x}, Data Page {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if args.show_dp else s
   },
   SortMode.by_pgnpri: {
     "length": 5,
     "idtype_str": "PGN+Priority",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
-    "idtype_transform": lambda s, args: s
+    "idtype_transform": lambda s, args: "{:#06x}, Priority {}".format((int(s,16) & 0xFFFF0 >> 4), (int(s,16) & 0x0000F)) if args.show_pri else s
   }
 }
 
@@ -102,10 +102,10 @@ class CanbusID:
     return (self.base_id & 0x1C000000) >> 26
     
   def getPGNAndDataPage(self):
-    return (self.base_id & 0x03FFFF00) >> 8
+    return (self.getPGN() << 4) | (self.getDataPage())
     
   def getPGNAndPriority(self):
-    return self.getPGN() | (self.getPriority() << 16)
+    return (self.getPGN() << 4) | (self.getPriority())
     
   def toString(self, args):
     strlist = [str(self)]
