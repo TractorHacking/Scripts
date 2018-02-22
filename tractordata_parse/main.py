@@ -30,13 +30,15 @@ def squashKeys(d, hashfn):
   return newdict
 
 class SortMode(Enum):
-  by_id = auto()
+  by_id  = auto()
   by_pgn = auto()
+  by_src = auto()
 
 
 ids_length = {
   SortMode.by_id: 8,
-  SortMode.by_pgn: 4
+  SortMode.by_pgn: 4,
+  SortMode.by_src: 2
 }
 
 class CanbusID:
@@ -118,7 +120,10 @@ class CanbusData:
     identifier_map = self.ids_dict
     if args.sortmode is SortMode.by_pgn:
       identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+    elif args.sortmode is SortMode.by_src:
+      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
       
+    
     for thing in sorted(identifier_map.keys()):
       idstr = thing
       if args.sortmode is SortMode.by_id:
@@ -137,6 +142,9 @@ class CanbusData:
     
     if args.sortmode is SortMode.by_pgn:
       identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+    elif args.sortmode is SortMode.by_src:
+      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
+      
     l = sorted(identifier_map.keys())
     for i in range(len(l)):
       idstr = l[i]
@@ -152,17 +160,27 @@ class CanbusData:
     # this is a dict sorted on ID
     identifier_map = self.ids_dict
     
+    idtype_str = None
+    
+    idstr_print = idstring
+    # hmm this smells vaguely of wanting a diff impl
     if args.sortmode is SortMode.by_id:
-      print("====SECTION Data of ID '%s'====" % idstring)
-      print(CanbusID(idstring).toString(args))
+      idtype_str = "ID"
+      idstr_print = CanbusID(idstring).toString(args)
     elif args.sortmode is SortMode.by_pgn:
-      print("====SECTION Data of PGN '%s'====" % idstring)
+      idtype_str = "PGN"
       identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+    elif args.sortmode is SortMode.by_src:
+      idtype_str = "Source"
+      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
       
+
     if not (idstring in identifier_map.keys()):
-      print("Key '%s' not present" % idstring)
+      print("Key '%s' not present in %d scanned file(s)" % (idstring, len(self.files_scanned)))
       return
+    
     packets_list = identifier_map[idstring]
+    print("====SECTION Data of %s '%s'====" % (idtype_str, idstr_print))
     
     print("(%d entries across all %d scanned file(s))" % (len(packets_list), len(self.files_scanned)))
     # We want an iterable for which 
@@ -193,6 +211,7 @@ if __name__ == "__main__":
   sortmodes_gp.set_defaults(sortmode=SortMode.by_id)
   sortmodes_gp.add_argument('--sortby-pgn', dest='sortmode', action='store_const', const=SortMode.by_pgn, help="Groups by PGN instead of the full ID")
   sortmodes_gp.add_argument('--sortby-id',  dest='sortmode', action='store_const', const=SortMode.by_id , help="Groups by full ID")
+  sortmodes_gp.add_argument('--sortby-src', dest='sortmode', action='store_const', const=SortMode.by_src, help="Groups by source device")
   
   subparsers = parser.add_subparsers(dest="action_type")
   subparsers.required = True
