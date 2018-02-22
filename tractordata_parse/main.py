@@ -51,7 +51,7 @@ sortmode_traits = {
     "length": 4,
     "idtype_str": "PGN",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN())),
-    "idtype_transform": lambda s, args: "{0}, {1}".format(s, int(s, 16))
+    "idtype_transform": lambda s, args: str(CanbusPGN(s))
   },
   SortMode.by_src: {
     "length": 2,
@@ -69,29 +69,33 @@ sortmode_traits = {
     "length": 5,
     "idtype_str": "PGN+Data Page",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
-    "idtype_transform": lambda s, args: "{:#06x}, Data Page {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Data Page {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4), (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnpri: {
     "length": 5,
     "idtype_str": "PGN+Priority",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
-    "idtype_transform": lambda s, args: "{:#06x}, Priority {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Priority {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4), (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnsrc: {
     "length": 6,
     "idtype_str": "PGN+Source",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getPGNAndSource())),
-    "idtype_transform": lambda s, args: "{:#06x}, Source {:#04x}".format((int(s,16) & 0xFFFF00) >> 8, (int(s,16) & 0x0000FF)) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF00) >> 8), (int(s,16) & 0x0000FF)) if not args.show_keys else s
   }
 }
 
 class CanbusID:
 
   def __init__(self, id):
-    # not the actual id but whatever for some reason we've got a null ID
-    if id == '':
-      id = "0"
-    self.base_id = int(id, 16)
+    self.base_id = 0
+    if type(id) is str:
+      # not the actual id but whatever for some reason we've got a null ID
+      if id == '':
+        id = "0"
+      self.base_id = int(id, 16)
+    elif type(id) is int:
+      self.base_id = id
     
   def __str__(self):
     return ("0x%08x" % self.base_id)
@@ -123,7 +127,7 @@ class CanbusID:
   def toString(self, args):
     strlist = [str(self)]
     if args.show_pgn:
-      strlist.append("PGN: " + str(self.getPGN()))
+      strlist.append("PGN: " + str(CanbusPGN(self.getPGN())))
     if args.show_src:
       strlist.append("Source: " + str(self.getSource()))
     if args.show_pri:
@@ -132,8 +136,19 @@ class CanbusID:
       strlist.append("Data Page: " + str(self.getDataPage()))
     return "["+(", ".join(strlist))+"]"
 
+class CanbusPGN:
+  def __init__(self, id):
+    self.base_pgn = 0
+    if type(id) is str:
+      self.base_pgn = int(id, 16)
+    elif type(id) is int:
+      self.base_pgn = id
+    
+  def __str__(self):
+    return "({:#06x}, {})".format(self.base_pgn, self.base_pgn)
+
 class CanbusData:
-  def __init__(self, *args, ):
+  def __init__(self):
   
     self.ids_dict = {}
     self.packet_sequence = []
