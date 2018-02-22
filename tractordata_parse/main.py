@@ -132,10 +132,12 @@ class CanbusData:
         idstr = "{0}, {1}".format(idstr, int(idstr, 16))
       print("%s: (%d entries)" % (idstr, len(identifier_map[thing])))
       for data in identifier_map[thing]:
-        if len(self.files_scanned) <= 1:
-          print("\t%s\n\t\t%s" % (data["time"], data["data"]))
-        else:
-          print("\t%-50s\t%s\n\t\t%s" % ("(%s)" % data["sourceFile"], data["time"], data["data"]))
+        if len(self.files_scanned) > 1:
+          print("\t({:>50})".format(data["sourceFile"]), end='')
+        if args.sortmode is not SortMode.by_id:
+          print("\t{}".format(data["ID"]), end='')
+        print("\t{}".format(data["time"]))
+        print("\t\t{}".format(data["data"]))
         
   def printAllIDs(self, args):
     identifier_map = self.ids_dict
@@ -185,7 +187,12 @@ class CanbusData:
     print("(%d entries across all %d scanned file(s))" % (len(packets_list), len(self.files_scanned)))
     # We want an iterable for which 
     for data in packets_list:
-      print("\t%-50s\t%s\n\t\t%s" % ("(%s)" % data["sourceFile"], data["time"], data["data"]))
+      if len(self.files_scanned) > 1:
+        print("\t({:>50})".format(data["sourceFile"]), end='')
+      if args.sortmode is not SortMode.by_id:
+        print("\t{}".format(data["ID"]), end='')
+      print("\t{}".format(data["time"]))
+      print("\t\t{}".format(data["data"]))
       files_set.add(data["sourceFile"])
     print("Found in the following files:")
     pprint(files_set)
