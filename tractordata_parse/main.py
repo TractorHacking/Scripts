@@ -33,12 +33,31 @@ class SortMode(Enum):
   by_id  = auto()
   by_pgn = auto()
   by_src = auto()
+  by_pri = auto()
 
 
-ids_length = {
-  SortMode.by_id: 8,
-  SortMode.by_pgn: 4,
-  SortMode.by_src: 2
+# I've gone off the deep end
+sortmode_traits = {
+  SortMode.by_id: {
+    "length": 8,
+    "idtype_str": "ID",
+    "dict_transform": lambda d: d
+  },
+  SortMode.by_pgn: {
+    "length": 4,
+    "idtype_str": "PGN",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
+  },
+  SortMode.by_src: {
+    "length": 2,
+    "idtype_str": "Source",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
+  },
+  SortMode.by_pri: {
+    "length": 1,
+    "idtype_str": "Priority",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getPriority()))
+  }
 }
 
 class CanbusID:
@@ -117,12 +136,7 @@ class CanbusData:
 
   def printDataByID(self, args):
     print("====SECTION Data by ID====")
-    identifier_map = self.ids_dict
-    if args.sortmode is SortMode.by_pgn:
-      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
-    elif args.sortmode is SortMode.by_src:
-      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
-      
+    identifier_map = sortmode_traits[args.sortmode]["dict_transform"](self.ids_dict)
     
     for thing in sorted(identifier_map.keys()):
       idstr = thing
@@ -140,12 +154,7 @@ class CanbusData:
         print("\t\t{}".format(data["data"]))
         
   def printAllIDs(self, args):
-    identifier_map = self.ids_dict
-    
-    if args.sortmode is SortMode.by_pgn:
-      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
-    elif args.sortmode is SortMode.by_src:
-      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
+    identifier_map = sortmode_traits[args.sortmode]["dict_transform"](self.ids_dict)
       
     l = sorted(identifier_map.keys())
     for i in range(len(l)):
@@ -159,22 +168,12 @@ class CanbusData:
   def printDataOnCanID(self, idstring, args):
     files_set = set()
     
-    # this is a dict sorted on ID
-    identifier_map = self.ids_dict
-    
-    idtype_str = None
+    identifier_map = sortmode_traits[args.sortmode]["dict_transform"](self.ids_dict)
     
     idstr_print = idstring
-    # hmm this smells vaguely of wanting a diff impl
+    # format the full id according to args
     if args.sortmode is SortMode.by_id:
-      idtype_str = "ID"
       idstr_print = CanbusID(idstring).toString(args)
-    elif args.sortmode is SortMode.by_pgn:
-      idtype_str = "PGN"
-      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN()))
-    elif args.sortmode is SortMode.by_src:
-      idtype_str = "Source"
-      identifier_map = squashKeys(self.ids_dict, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource()))
       
 
     if not (idstring in identifier_map.keys()):
@@ -182,14 +181,14 @@ class CanbusData:
       return
     
     packets_list = identifier_map[idstring]
-    print("====SECTION Data of %s '%s'====" % (idtype_str, idstr_print))
+    print("====SECTION Data of %s '%s'====" % (sortmode_traits[args.sortmode]["idtype_str"], idstr_print))
     
     print("(%d entries across all %d scanned file(s))" % (len(packets_list), len(self.files_scanned)))
     # We want an iterable for which 
     for data in packets_list:
       print("\t{}".format(data["time"]), end='')
       if args.sortmode is not SortMode.by_id:
-        print("\t{}".format(data["ID"]), end='')
+        print("\t{}".format(CanbusID(data["ID"]).toString(args)), end='')
       if len(self.files_scanned) > 1:
         print("\t({:>50})".format(data["sourceFile"]), end='')
       print() # newline
@@ -220,6 +219,7 @@ if __name__ == "__main__":
   sortmodes_gp.add_argument('--sortby-pgn', dest='sortmode', action='store_const', const=SortMode.by_pgn, help="Groups by PGN instead of the full ID")
   sortmodes_gp.add_argument('--sortby-id',  dest='sortmode', action='store_const', const=SortMode.by_id , help="Groups by full ID")
   sortmodes_gp.add_argument('--sortby-src', dest='sortmode', action='store_const', const=SortMode.by_src, help="Groups by source device")
+  sortmodes_gp.add_argument('--sortby-pri', dest='sortmode', action='store_const', const=SortMode.by_pri, help="Groups by priority")
   
   subparsers = parser.add_subparsers(dest="action_type")
   subparsers.required = True
@@ -239,7 +239,7 @@ if __name__ == "__main__":
         except ValueError:
           print("Unable to parse ID {}".format(tid))
           sys.exit(1)
-      tid = "{0:#0{1}x}".format(temp_tid, 2 + ids_length[args.sortmode])
+      tid = "{0:#0{1}x}".format(temp_tid, 2 + sortmode_traits[args.sortmode]["length"])
       cbdata.printDataOnCanID(tid, args)
       
   def dump_ids(args):
