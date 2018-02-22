@@ -36,6 +36,7 @@ class SortMode(Enum):
   by_pri = auto()
   by_pgndp = auto()
   by_pgnpri = auto()
+  by_pgnsrc = auto()
 
 
 # I've gone off the deep end
@@ -75,6 +76,12 @@ sortmode_traits = {
     "idtype_str": "PGN+Priority",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
     "idtype_transform": lambda s, args: "{:#06x}, Priority {}".format((int(s,16) & 0xFFFF0) >> 4, (int(s,16) & 0x0000F)) if not args.show_keys else s
+  },
+  SortMode.by_pgnsrc: {
+    "length": 6,
+    "idtype_str": "PGN+Source",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getPGNAndSource())),
+    "idtype_transform": lambda s, args: "{:#06x}, Source {:#04x}".format((int(s,16) & 0xFFFF00) >> 8, (int(s,16) & 0x0000FF)) if not args.show_keys else s
   }
 }
 
@@ -101,11 +108,17 @@ class CanbusID:
   def getPriority(self):
     return (self.base_id & 0x1C000000) >> 26
     
+    
+  #Combo modes
+  # We fiddle with the byte ordering to make sorting more useful
   def getPGNAndDataPage(self):
     return (self.getPGN() << 4) | (self.getDataPage())
     
   def getPGNAndPriority(self):
     return (self.getPGN() << 4) | (self.getPriority())
+    
+  def getPGNAndSource(self):
+    return (self.getPGN() << 8) | (self.getSource())
     
   def toString(self, args):
     strlist = [str(self)]
@@ -240,6 +253,7 @@ if __name__ == "__main__":
   sortmodes_gp.add_argument('--sortby-pri',    dest='sortmode', action='store_const', const=SortMode.by_pri,    help="Groups by priority")
   sortmodes_gp.add_argument('--sortby-pgndp',  dest='sortmode', action='store_const', const=SortMode.by_pgndp,  help="Groups by PGN+Data page")
   sortmodes_gp.add_argument('--sortby-pgnpri', dest='sortmode', action='store_const', const=SortMode.by_pgnpri, help="Groups by PGN+Priority")
+  sortmodes_gp.add_argument('--sortby-pgnsrc', dest='sortmode', action='store_const', const=SortMode.by_pgnsrc, help="Groups by PGN+Source")
   
   subparsers = parser.add_subparsers(dest="action_type")
   subparsers.required = True
