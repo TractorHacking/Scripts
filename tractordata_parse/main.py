@@ -29,6 +29,7 @@ class SortMode(Enum):
   by_pgndp = auto()
   by_pgnpri = auto()
   by_pgnsrc = auto()
+  by_srcpgn = auto()
 
 
 # I've gone off the deep end
@@ -74,6 +75,12 @@ sortmode_traits = {
     "idtype_str": "PGN+Source",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getPGNAndSource())),
     "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF00) >> 8), (int(s,16) & 0x0000FF)) if not args.show_keys else s
+  },
+  SortMode.by_srcpgn: {
+    "length": 6,
+    "idtype_str": "Source+PGN",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getSourceAndPGN())),
+    "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF)), (int(s,16) & 0xFF0000) >> 16) if not args.show_keys else s
   }
 }
 
@@ -115,6 +122,9 @@ class CanbusID:
     
   def getPGNAndSource(self):
     return (self.getPGN() << 8) | (self.getSource())
+    
+  def getSourceAndPGN(self):
+    return (self.getSource() << 16) | (self.getPGN())
     
   def toString(self, args):
     strlist = [str(self)]
@@ -261,6 +271,7 @@ if __name__ == "__main__":
   sortmodes_gp.add_argument('--sortby-pgndp',  dest='sortmode', action='store_const', const=SortMode.by_pgndp,  help="Groups by PGN+Data page")
   sortmodes_gp.add_argument('--sortby-pgnpri', dest='sortmode', action='store_const', const=SortMode.by_pgnpri, help="Groups by PGN+Priority")
   sortmodes_gp.add_argument('--sortby-pgnsrc', dest='sortmode', action='store_const', const=SortMode.by_pgnsrc, help="Groups by PGN+Source")
+  sortmodes_gp.add_argument('--sortby-srcpgn', dest='sortmode', action='store_const', const=SortMode.by_srcpgn, help="Groups by Source+PGN")
   
   subparsers = parser.add_subparsers(dest="action_type")
   subparsers.required = True
