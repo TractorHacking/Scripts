@@ -8,26 +8,18 @@ import argparse
 import os
 import sys
 import itertools
+import functools
 
-# this function is probably wholly unnecessary and non-idiomatic
 def squashKeys(d, hashfn):
   newdict = dict()
-  # this is a list of lists of IDs that share the same PGN
-  #iterthing = itertools.groupby(ids_dict.keys(), lambda canid: CanBusID(canid).getPGN())
-  iterthing = itertools.groupby(d.keys(), hashfn)
-  # we need to use this to create a dictionary that uses these PGNs as keys
-  # the existing dictionary contains lists of dictionaries that each correspond to a
-  # packet
-  # we want to concatenate all such lists that match those packets to a single list
-  # and then use those to create a new dictionary to iterate through
-  # I think I'm overlooking a more idiomatic way of doing this
-  # using "sum" maybe?
-  for pgn, matching_ids in iterthing:
-    # matching_ids is a list of IDs that share the same PGN value
-    for i in matching_ids:
-      packetlist = newdict.setdefault(pgn, [])
-      packetlist.extend(d[i])
+  for basekey, matching_ids in itertools.groupby(d.keys(), hashfn):
+    matchlist = newdict.setdefault(basekey, [])
+    # want to do something clever with this but all I'm getting is sadness
+#    newdict[basekey] = functools.reduce(lambda l, i: l.extend(d[i]) , matching_ids, matchlist)
+    for thing in matching_ids:
+      matchlist.extend(d[thing])
   return newdict
+
 
 class SortMode(Enum):
   by_id  = auto()
