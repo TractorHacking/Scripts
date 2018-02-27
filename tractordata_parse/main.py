@@ -209,8 +209,10 @@ class CanbusData:
     l = sorted(identifier_map.keys())
     for i in range(len(l)):
       idstr = sortmode_traits[args.sortmode]["idtype_transform"](l[i], args)
-      
-      print("%2d" % i, idstr, "(%d entries across all checked files)" % len(identifier_map[l[i]]))
+      if args.diff_friendly:
+        print(idstr)
+      else:
+        print("%2d" % i, idstr, "(%d entries across all checked files)" % len(identifier_map[l[i]]))
         
   def printDataOnCanID(self, idstring, args):
     files_set = set()
@@ -306,6 +308,7 @@ if __name__ == "__main__":
   
   dump_action = subparsers.add_parser('dump-ids', parents=[common_parser], help='Dump all unique CAN IDs from the files')
   dump_action.add_argument('--show-keys', action='store_true', help="Show the keys for use in the 'target-id' statement")
+  dump_action.add_argument('--diff-friendly', action='store_true', help="Reduces information to make the format more diff compatible")
   dump_action.set_defaults(func=dump_ids)
   
   args = parser.parse_args()
