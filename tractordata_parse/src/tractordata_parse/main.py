@@ -278,7 +278,7 @@ class CanbusData:
 
   
 # the actual driving magic is here
-if __name__ == "__main__":
+def main():
   parser = argparse.ArgumentParser(description='Get unique CAN-Bus IDs.')
   
   # we do a common parser instead of adding them all above because otherwise
@@ -325,6 +325,7 @@ if __name__ == "__main__":
         except ValueError:
           print("Unable to parse ID {}".format(tid))
           sys.exit(1)
+      # +2 because of the leading "0x"
       tid = "{0:#0{1}x}".format(temp_tid, 2 + sortmode_traits[args.sortmode]["length"])
       cbdata.printDataOnCanID(tid, args)
       
