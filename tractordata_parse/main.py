@@ -45,7 +45,7 @@ sortmode_traits = {
     "length": 4,
     "idtype_str": "PGN",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN())),
-    "idtype_transform": lambda s, args: str(CanbusPGN(s))
+    "idtype_transform": lambda s, args: CanbusPGN(s).toString()
   },
   SortMode.by_src: {
     "length": 2,
@@ -59,35 +59,35 @@ sortmode_traits = {
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getPriority())),
     "idtype_transform": lambda s, args: s
   },
-  SortMode.by_pri: {
+  SortMode.by_dest: {
     "length": 2,
     "idtype_str": "Destination",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getDest())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusID(id_no).getDest())),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_pgndp: {
     "length": 5,
     "idtype_str": "PGN+Data Page",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
-    "idtype_transform": lambda s, args: "{}, Data Page {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4), (int(s,16) & 0x0000F)) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Data Page {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4).toString(args), (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnpri: {
     "length": 5,
     "idtype_str": "PGN+Priority",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
-    "idtype_transform": lambda s, args: "{}, Priority {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4), (int(s,16) & 0x0000F)) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Priority {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4).toString(args), (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnsrc: {
     "length": 6,
     "idtype_str": "PGN+Source",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getPGNAndSource())),
-    "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF00) >> 8), (int(s,16) & 0x0000FF)) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF00) >> 8).toString(args), (int(s,16) & 0x0000FF)) if not args.show_keys else s
   },
   SortMode.by_srcpgn: {
     "length": 6,
     "idtype_str": "Source+PGN",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getSourceAndPGN())),
-    "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF)), (int(s,16) & 0xFF0000) >> 16) if not args.show_keys else s
+    "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF)).toString(args), (int(s,16) & 0xFF0000) >> 16) if not args.show_keys else s
   }
 }
 
@@ -106,9 +106,10 @@ class CanbusID:
   def __str__(self):
     return ("0x%08x" % self.base_id)
     
+  # As per the "Data link layer" document
   def getPGN(self):
     pgn = (self.getPF() << 8)
-    if self.isGroupExt():
+    if self.isGroupExt(): # PF >= 240; PF >= 0xF0
       pgn |= self.getPS()
     return pgn
     
@@ -151,9 +152,11 @@ class CanbusID:
   def toString(self, args):
     strlist = [str(self)]
     if args.show_pgn:
-      strlist.append("PGN: " + str(CanbusPGN(self.getPGN())))
+      strlist.append("PGN: " + CanbusPGN(self.getPGN()).toString(args))
     if args.show_src:
-      strlist.append("Source: " + str(self.getSource()))
+      strlist.append("Source: " + "{:#04x}".format(self.getSource()))
+    if args.show_dest:
+      strlist.append("Destination: " + "{:#04x}".format(self.getDest()))
     if args.show_pri:
       strlist.append("Priority: " + str(self.getPriority()))
     if args.show_dp:
@@ -169,7 +172,12 @@ class CanbusPGN:
       self.base_pgn = id
     
   def __str__(self):
-    return "({:#06x}, {})".format(self.base_pgn, self.base_pgn)
+    return "{:#06x}, {}".format(self.base_pgn, self.base_pgn)
+    
+  def toString(self, args):
+    strlist = [str(self)]
+    return "("+(", ".join(strlist))+")"
+    
 
 class CanbusData:
   def __init__(self):
@@ -283,6 +291,7 @@ if __name__ == "__main__":
   common_parser.add_argument('--show-pri', action='store_true', help="Shows the priority of each CAN ID")
   common_parser.add_argument('--show-dp', action='store_true', help="Shows the data page of each CAN ID")
   common_parser.add_argument('--show-pgn', action='store_true', help="Shows the decimal PGN key for each CAN ID")
+  common_parser.add_argument('--show-dest', action='store_true', help="Shows the destination of each CAN ID if applicable")
   common_parser.add_argument('--verbose', action='store_true', help="Makes the program more chatty about minor details")
   common_parser.set_defaults(show_keys=False)
   
