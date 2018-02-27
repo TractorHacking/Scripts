@@ -26,6 +26,7 @@ class SortMode(Enum):
   by_pgn = auto()
   by_src = auto()
   by_pri = auto()
+  by_dest = auto()
   by_pgndp = auto()
   by_pgnpri = auto()
   by_pgnsrc = auto()
@@ -56,6 +57,12 @@ sortmode_traits = {
     "length": 1,
     "idtype_str": "Priority",
     "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getPriority())),
+    "idtype_transform": lambda s, args: s
+  },
+  SortMode.by_pri: {
+    "length": 2,
+    "idtype_str": "Destination",
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getDest())),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_pgndp: {
@@ -100,7 +107,19 @@ class CanbusID:
     return ("0x%08x" % self.base_id)
     
   def getPGN(self):
-    return (self.base_id & 0x00FFFF00) >> 8
+    pgn = (self.getPF() << 8)
+    if self.isGroupExt():
+      pgn |= self.getPS()
+    return pgn
+    
+  def getPF(self):
+    return (self.base_id & 0x00FF0000) >> 16
+    
+  def getPS(self):
+    return (self.base_id & 0x0000FF00) >> 8
+  
+  def getDest(self):
+    return 0 if self.isGroupExt() else self.getPS()
   
   def getSource(self):
     return (self.base_id & 0x000000FF) # >> 0
@@ -111,6 +130,9 @@ class CanbusID:
   def getPriority(self):
     return (self.base_id & 0x1C000000) >> 26
     
+  # state queries
+  def isGroupExt(self):
+    return (self.getPF() >= 240)
     
   #Combo modes
   # We fiddle with the byte ordering to make sorting more useful
@@ -270,6 +292,7 @@ if __name__ == "__main__":
   sortmodes_gp.add_argument('--sortby-id',     dest='sortmode', action='store_const', const=SortMode.by_id ,    help="Groups by full ID")
   sortmodes_gp.add_argument('--sortby-src',    dest='sortmode', action='store_const', const=SortMode.by_src,    help="Groups by source device")
   sortmodes_gp.add_argument('--sortby-pri',    dest='sortmode', action='store_const', const=SortMode.by_pri,    help="Groups by priority")
+  sortmodes_gp.add_argument('--sortby-dest',   dest='sortmode', action='store_const', const=SortMode.by_dest,   help="Groups by Dest")
   sortmodes_gp.add_argument('--sortby-pgndp',  dest='sortmode', action='store_const', const=SortMode.by_pgndp,  help="Groups by PGN+Data page")
   sortmodes_gp.add_argument('--sortby-pgnpri', dest='sortmode', action='store_const', const=SortMode.by_pgnpri, help="Groups by PGN+Priority")
   sortmodes_gp.add_argument('--sortby-pgnsrc', dest='sortmode', action='store_const', const=SortMode.by_pgnsrc, help="Groups by PGN+Source")
