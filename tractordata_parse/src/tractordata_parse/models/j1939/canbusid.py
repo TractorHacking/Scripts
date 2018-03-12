@@ -18,7 +18,7 @@ class CanbusIDView:
   @property
   def pgn(self):
     _pgn = (self.pf << 8)
-    if self.isGroupExt(): # PF >= 240; PF >= 0xF0
+    if self.isGroupExt: # PF >= 240; PF >= 0xF0
       _pgn |= self.ps
     return _pgn
     

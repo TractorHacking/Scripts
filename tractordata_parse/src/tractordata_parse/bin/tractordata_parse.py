@@ -35,25 +35,25 @@ sortmode_traits = {
   SortMode.by_pgn: {
     "length": 4,
     "idtype_str": "PGN",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusIDView(id_no).getPGN())),
-    "idtype_transform": lambda s, args: CanbusPGN(s).toString()
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusIDView(id_no).pgn)),
+    "idtype_transform": lambda s, args: CanbusPGN(s).toString(args)
   },
   SortMode.by_src: {
     "length": 2,
     "idtype_str": "Source",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusIDView(id_no).getSource())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusIDView(id_no).source)),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_pri: {
     "length": 1,
     "idtype_str": "Priority",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusIDView(id_no).getPriority())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusIDView(id_no).priority)),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_dest: {
     "length": 2,
     "idtype_str": "Destination",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusIDView(id_no).getDest())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusIDView(id_no).dest)),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_pgndp: {

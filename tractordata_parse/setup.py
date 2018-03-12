@@ -19,7 +19,7 @@ setup(
       'tractordata_parse = tractordata_parse.bin.tractordata_parse:main'
     ],
     'gui_scripts': [
-      'tractordata_gui = bin:tractordata_gui'
+      'tractordata_gui = tractordata_parse.bin.tractordata_parse:tractordata_gui'
     ]
   },
   classifiers=[
