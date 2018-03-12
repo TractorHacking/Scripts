@@ -7,20 +7,11 @@ from enum import Enum, auto
 import argparse
 import os
 import sys
-import itertools
-import functools
 
-def squashKeys(d, hashfn):
-  newdict = dict()
-  for basekey, matching_ids in itertools.groupby(d.keys(), hashfn):
-    matchlist = newdict.setdefault(basekey, [])
-    # want to do something clever with this but all I'm getting is sadness
-#    newdict[basekey] = functools.reduce(lambda l, i: l.extend(d[i]) , matching_ids, matchlist)
-    for thing in matching_ids:
-      matchlist.extend(d[thing])
-  return newdict
+from tractordata_parse.utils.dict_utils import squashKeys
+from tractordata_parse.models.j1939 import CanbusIDView, CanbusPGN
 
-
+# probably wanna overhaul the sort system with an SQLalchemy thing
 class SortMode(Enum):
   by_id  = auto()
   by_pgn = auto()
@@ -39,144 +30,57 @@ sortmode_traits = {
     "length": 8,
     "idtype_str": "ID",
     "dict_transform": lambda d: d,
-    "idtype_transform": lambda s, args: CanbusID(s).toString(args)
+    "idtype_transform": lambda s, args: CanbusIDView(s).toString(args)
   },
   SortMode.by_pgn: {
     "length": 4,
     "idtype_str": "PGN",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusID(id_no).getPGN())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#06x}".format(CanbusIDView(id_no).getPGN())),
     "idtype_transform": lambda s, args: CanbusPGN(s).toString()
   },
   SortMode.by_src: {
     "length": 2,
     "idtype_str": "Source",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusID(id_no).getSource())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusIDView(id_no).getSource())),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_pri: {
     "length": 1,
     "idtype_str": "Priority",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusID(id_no).getPriority())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#03x}".format(CanbusIDView(id_no).getPriority())),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_dest: {
     "length": 2,
     "idtype_str": "Destination",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusID(id_no).getDest())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#04x}".format(CanbusIDView(id_no).getDest())),
     "idtype_transform": lambda s, args: s
   },
   SortMode.by_pgndp: {
     "length": 5,
     "idtype_str": "PGN+Data Page",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndDataPage())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusIDView(id_no).getPGNAndDataPage())),
     "idtype_transform": lambda s, args: "{}, Data Page {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4).toString(args), (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnpri: {
     "length": 5,
     "idtype_str": "PGN+Priority",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusID(id_no).getPGNAndPriority())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#07x}".format(CanbusIDView(id_no).getPGNAndPriority())),
     "idtype_transform": lambda s, args: "{}, Priority {}".format(CanbusPGN((int(s,16) & 0xFFFF0) >> 4).toString(args), (int(s,16) & 0x0000F)) if not args.show_keys else s
   },
   SortMode.by_pgnsrc: {
     "length": 6,
     "idtype_str": "PGN+Source",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getPGNAndSource())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusIDView(id_no).getPGNAndSource())),
     "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF00) >> 8).toString(args), (int(s,16) & 0x0000FF)) if not args.show_keys else s
   },
   SortMode.by_srcpgn: {
     "length": 6,
     "idtype_str": "Source+PGN",
-    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusID(id_no).getSourceAndPGN())),
+    "dict_transform": lambda d: squashKeys(d, lambda id_no: "{:#08x}".format(CanbusIDView(id_no).getSourceAndPGN())),
     "idtype_transform": lambda s, args: "{}, Source {:#04x}".format(CanbusPGN((int(s,16) & 0xFFFF)).toString(args), (int(s,16) & 0xFF0000) >> 16) if not args.show_keys else s
   }
 }
-
-class CanbusID:
-
-  def __init__(self, id):
-    self.base_id = 0
-    if type(id) is str:
-      # not the actual id but whatever for some reason we've got a null ID
-      if id == '':
-        id = "0"
-      self.base_id = int(id, 16)
-    elif type(id) is int:
-      self.base_id = id
-    
-  def __str__(self):
-    return ("0x%08x" % self.base_id)
-    
-  # As per the "Data link layer" document
-  def getPGN(self):
-    pgn = (self.getPF() << 8)
-    if self.isGroupExt(): # PF >= 240; PF >= 0xF0
-      pgn |= self.getPS()
-    return pgn
-    
-  def getPF(self):
-    return (self.base_id & 0x00FF0000) >> 16
-    
-  def getPS(self):
-    return (self.base_id & 0x0000FF00) >> 8
-  
-  def getDest(self):
-    return 0 if self.isGroupExt() else self.getPS()
-  
-  def getSource(self):
-    return (self.base_id & 0x000000FF) # >> 0
-    
-  def getDataPage(self):
-    return (self.base_id & 0x03000000) >> 24
-    
-  def getPriority(self):
-    return (self.base_id & 0x1C000000) >> 26
-    
-  # state queries
-  def isGroupExt(self):
-    return (self.getPF() >= 240)
-    
-  #Combo modes
-  # We fiddle with the byte ordering to make sorting more useful
-  def getPGNAndDataPage(self):
-    return (self.getPGN() << 4) | (self.getDataPage())
-    
-  def getPGNAndPriority(self):
-    return (self.getPGN() << 4) | (self.getPriority())
-    
-  def getPGNAndSource(self):
-    return (self.getPGN() << 8) | (self.getSource())
-    
-  def getSourceAndPGN(self):
-    return (self.getSource() << 16) | (self.getPGN())
-    
-  def toString(self, args):
-    strlist = [str(self)]
-    if args.show_pgn:
-      strlist.append("PGN: " + CanbusPGN(self.getPGN()).toString(args))
-    if args.show_src:
-      strlist.append("Source: " + "{:#04x}".format(self.getSource()))
-    if args.show_dest:
-      strlist.append("Destination: " + "{:#04x}".format(self.getDest()))
-    if args.show_pri:
-      strlist.append("Priority: " + str(self.getPriority()))
-    if args.show_dp:
-      strlist.append("Data Page: " + str(self.getDataPage()))
-    return "["+(", ".join(strlist))+"]"
-
-class CanbusPGN:
-  def __init__(self, id):
-    self.base_pgn = 0
-    if type(id) is str:
-      self.base_pgn = int(id, 16)
-    elif type(id) is int:
-      self.base_pgn = id
-    
-  def __str__(self):
-    return "{:#06x}, {}".format(self.base_pgn, self.base_pgn)
-    
-  def toString(self, args):
-    strlist = [str(self)]
-    return "("+(", ".join(strlist))+")"
     
 
 class CanbusData:
@@ -192,29 +96,32 @@ class CanbusData:
       print( "reading: " + fpath, file=sys.stderr)
     self.files_scanned.append(fpath)
     with open(fpath) as infile:
-      reader = csv.reader(infile)
-      # Skip first "header" row
+      reader = csv.DictReader(infile)
 
-      header_row = next(reader)
-
-      err_index = header_row.index("Errors")
-      ID_index = header_row.index("ID")
-      data_index = header_row.index("Data")
-      time_index = header_row.index("Time")
+      # Header row contents, in order:
+      # "Marked"
+      # "Time"
+      # "Serial Bus"
+      # "ID"
+      # "Type"
+      # "DLC"
+      # "Data"
+      # "CRC"
+      # "Errors"
       
       # 9 columns per row
       for row in reader:
         # row has an error
-        if len(row[err_index]) != 0:
+        if len(row["Errors"]) != 0:
           self.error_count = self.error_count + 1
           continue
         # data is null
-        if len(row[data_index]) == 0:
+        if len(row["Data"]) == 0:
           continue
         # goofy trick to make the ID uniform
-        can_id = "{0:#010x}".format(int(row[ID_index] if row[ID_index] is not '' else '0', 16))
+        can_id = "{0:#010x}".format(int(row["ID"] if row["ID"] is not '' else '0', 16))
         id_data = self.ids_dict.setdefault(can_id, [])
-        pinfo_dict = { "data": row[data_index], "time": row[time_index], "ID": can_id, "sourceFile": fpath }
+        pinfo_dict = { "data": row["Data"], "time": row["Time"], "ID": can_id, "sourceFile": fpath }
         id_data.append(pinfo_dict)
         self.packet_sequence.append(pinfo_dict)
 
@@ -252,7 +159,7 @@ class CanbusData:
     idstr_print = idstring
     # format the full id according to args
     if args.sortmode is SortMode.by_id:
-      idstr_print = CanbusID(idstring).toString(args)
+      idstr_print = CanbusIDView(idstring).toString(args)
       
 
     if not (idstring in identifier_map.keys()):
@@ -267,7 +174,7 @@ class CanbusData:
     for data in packets_list:
       print("\t{}".format(data["time"]), end='')
       if args.sortmode is not SortMode.by_id:
-        print("\t{}".format(CanbusID(data["ID"]).toString(args)), end='')
+        print("\t{}".format(CanbusIDView(data["ID"]).toString(args)), end='')
       if len(self.files_scanned) > 1:
         print("\t({:>50})".format(data["sourceFile"]), end='')
       print() # newline

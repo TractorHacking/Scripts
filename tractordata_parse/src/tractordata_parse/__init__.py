@@ -1,1 +1,1 @@
-from .main import main
+import tractordata_parse.bin

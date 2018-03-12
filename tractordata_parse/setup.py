@@ -16,7 +16,10 @@ setup(
   package_dir={'':'src'},
   entry_points={
     'console_scripts': [
-      'tractordata_parse = tractordata_parse:main'
+      'tractordata_parse = tractordata_parse.bin.tractordata_parse:main'
+    ],
+    'gui_scripts': [
+      'tractordata_gui = bin:tractordata_gui'
     ]
   },
   classifiers=[
