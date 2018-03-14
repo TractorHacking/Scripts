@@ -15,7 +15,7 @@ description = line.split(",")[0]
 outfile.write("---\n")
 outfile.write("layout: page\n")
 outfile.write("title: "+id+"\n")
-outfile.write("permalink: idinfo/"+id+"\n")
+outfile.write("description: "+description+"\n")
 outfile.write("---\n\n")
 
 outfile.write("### Description\n\n")
