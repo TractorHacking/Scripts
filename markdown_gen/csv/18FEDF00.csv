@@ -1,9 +1,0 @@
-Electronic Engine Controller 3,1,Nominal Friction - Percent Torque,1 byte
-Electronic Engine Controller 3,2-3,Engine's Desired Operating Speed,2 bytes
-Electronic Engine Controller 3,4,Engine's Desired Operating Speed Asymmetry Adjustment,1 byte
-Electronic Engine Controller 3,5,Estimated Engine Parasitic Losses - Percent Torque,1 byte
-Electronic Engine Controller 3,6-7,Aftertreatment 1 Exhaust Gas Mass Flow Rate,2 bytes
-Electronic Engine Controller 3,8.1,Aftertreatment 1 Intake Dew Point,2 bits
-Electronic Engine Controller 3,8.3,Aftertreatment 1 Exhaust Dew Point,2 bits
-Electronic Engine Controller 3,8.5,Aftertreatment 2 Intake Dew Point,2 bits
-Electronic Engine Controller 3,8.7,Aftertreatment 2 Exhaust Dew Point,2 bits

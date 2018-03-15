@@ -1,8 +1,0 @@
-Electronic Engine Controller 1,1.1,Engine Torque Mode,4 bits
-Electronic Engine Controller 1,1.5,Actual Engine - Percent Torque (Fractional),4 bits
-Electronic Engine Controller 1,2,Driver's Demand Engine - Percent Torque,1 byte
-Electronic Engine Controller 1,3,Actual Engine - Percent Torque,1 byte
-Electronic Engine Controller 1,4-5,Engine Speed,2 bytes
-Electronic Engine Controller 1,6,Source Address of Controlling Device for Engine Control,1 byte
-Electronic Engine Controller 1,7.1,Engine Starter Mode,4 bits
-Electronic Engine Controller 1,8,Engine Demand – Percent Torque,1 byte

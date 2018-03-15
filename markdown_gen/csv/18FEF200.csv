@@ -1,5 +1,0 @@
-Fuel Economy (Liquid),1-2,Engine Fuel Rate,2 bytes
-Fuel Economy (Liquid),3-4,Engine Instantaneous Fuel Economy,2 bytes
-Fuel Economy (Liquid),5-6,Engine Average Fuel Economy,2 bytes
-Fuel Economy (Liquid),7,Engine Throttle Valve 1 Position 1,1 byte
-Fuel Economy (Liquid),8,Engine Throttle Valve 2 Position,1 byte

@@ -1,5 +1,0 @@
-Vehicle Electrical Power 1,1,SLI Battery 1 Net Current,1 byte
-Vehicle Electrical Power 1,2,Alternator Current,1 byte
-Vehicle Electrical Power 1,3-4,Charging System Potential (Voltage),2 bytes
-Vehicle Electrical Power 1,5-6,Battery Potential / Power Input 1,2 bytes
-Vehicle Electrical Power 1,7-8,Key Switch Battery Potential,2 bytes

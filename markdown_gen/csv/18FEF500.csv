@@ -1,5 +1,0 @@
-Ambient Conditions,1,Barometric Pressure,1 byte
-Ambient Conditions,2-3,Cab Interior Temperature,2 bytes
-Ambient Conditions,4-5,Ambient Air Temperature,2 bytes
-Ambient Conditions,6,Engine Intake 1 Air Temperature,1 byte
-Ambient Conditions,7-8,Road Surface Temperature,2 bytes
