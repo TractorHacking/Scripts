@@ -10,7 +10,7 @@ def main():
 		return
 
 	infile = open('all_ids.txt', 'r')
-	picklefile = open('pgndict.txt', 'r')
+	picklefile = open('pgndict', 'r')
 	dict = cPickle.load(picklefile)
 	errorfile = open('invalid_ids.txt', 'w')
 	if(len(sys.argv) > 2):

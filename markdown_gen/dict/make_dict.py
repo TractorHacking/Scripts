@@ -9,7 +9,7 @@ SIZE = 21
 
 def main():
 	pgnfile = open('PGN.csv', 'r')
-	dictfile = open('pgndict.txt', 'wb')
+	dictfile = open('pgndict', 'wb')
 
 	dict = {}
 
