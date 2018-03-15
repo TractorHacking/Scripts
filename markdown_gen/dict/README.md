@@ -4,9 +4,9 @@ an object type named pgn, that is specified in the file pgn.py. Each individual 
 that are sent under that pgn, and details on their byte size and offset, and description. The resulting dictionary
 is serialized using the Pickle library and saved into a file named pgndict.txt. This file can be deserialized 
 using the Pickle library, found here: [Pickle](https://docs.python.org/2/library/pickle.html).
-
+```
 Usage: python make_dict.py
-
+```
 No arguments are needed.
 make_dict.py requires that the list of SAE PGNs are stored in a file in the current directory, named PGN.csv. 
 This must use standard commma delimination. The outut dictionary is stored in a file pgndict.txt, also in the current
