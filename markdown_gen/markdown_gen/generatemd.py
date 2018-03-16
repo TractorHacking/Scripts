@@ -64,7 +64,7 @@ def write_md(outfile, id_info, id):
 		outfile.write("* Destination Address: (PS): "+id[len(id)-4 : len(id)-2]+"\n")
 	outfile.write("* PDU Format (PF): "+id[len(id)-6 : len(id)-4]+"\n")
 	outfile.write("* Data Page: b"+format(int(id[1:2], 16), "04b")[2:4]+"\n")
-	outfile.write("* Priority: "+str(int(format(int(id[0:2], 16), "05b")[0:3],2))+"\n")
+	outfile.write("* Priority: "+str(int(format(int(id[0:2], 16), "05b")[0:3],2))+"\n\n")
 
 	outfile.write("### Data Packet Breakdown:\n\n")
 	outfile.write("| Name | Size | Byte Offset |\n")
